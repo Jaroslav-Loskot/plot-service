@@ -49,12 +49,25 @@ def create_plot(data: PlotRequest):
 @app.get("/help")
 def get_help():
     return {
-        "description": "This API generates base64-encoded images of graphs using Matplotlib.",
+        "description": "This API generates graphs using Matplotlib. It supports both base64-encoded images and raw PNG responses.",
         "endpoint": "/plot",
         "method": "POST",
         "required_fields": ["x", "y"],
-        "optional_fields": ["chart_type", "title", "xlabel", "ylabel", "grid"],
+        "optional_fields": [
+            "chart_type",
+            "title",
+            "xlabel",
+            "ylabel",
+            "grid",
+            "return_format",
+            "description"
+        ],
         "chart_types_supported": ["line", "bar", "scatter", "pie"],
+        "return_formats_supported": ["base64 (default)", "png"],
+        "notes": [
+            "PNG responses return only the image and exclude description or other metadata.",
+            "Base64 format includes the encoded image and may include optional fields like description."
+        ],
         "example_payload": {
             "x": ["Q1", "Q2", "Q3"],
             "y": [120, 150, 180],
@@ -62,7 +75,9 @@ def get_help():
             "title": "Quarterly Sales",
             "xlabel": "Quarter",
             "ylabel": "Revenue",
-            "grid": True
+            "grid": True,
+            "return_format": "base64",
+            "description": "Bar chart showing sales over Q1 to Q3."
         }
     }
 
