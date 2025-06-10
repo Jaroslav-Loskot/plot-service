@@ -3,6 +3,14 @@ from pydantic import BaseModel
 from plot_example import generate_plot
 from fastapi.responses import StreamingResponse
 from io import BytesIO
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi import Depends
+import secrets
+
+
+security = HTTPBasic()
+USERNAME = "update-as-soon-as-possible"
+PASSWORD = "your-hyper-secret-password"
 
 app = FastAPI()
 
@@ -17,11 +25,19 @@ class PlotRequest(BaseModel):
     return_format: str = "base64"
     description: str | None = None
 
+def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_username = secrets.compare_digest(credentials.username, USERNAME)
+    correct_password = secrets.compare_digest(credentials.password, PASSWORD)
+    if not (correct_username and correct_password):
+        raise HTTPException(status_code=401, detail="Unauthorized", headers={"WWW-Authenticate": "Basic"})
 
 
 
 @app.post("/plot")
-def create_plot(data: PlotRequest):
+def create_plot(
+    data: PlotRequest,
+    credentials: HTTPBasicCredentials = Depends(authenticate)  # 👈 Auth here
+):
     try:
         image_bytes = generate_plot(
             data.x,
@@ -89,3 +105,13 @@ def health():
 def ready():
     return {"status": "ready"}
 
+
+from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+
+@app.get("/docs", include_in_schema=False)
+def custom_swagger_ui(credentials: HTTPBasicCredentials = Depends(authenticate)):
+    return get_swagger_ui_html(openapi_url="/openapi.json", title="Plot Service Docs")
+
+@app.get("/redoc", include_in_schema=False)
+def custom_redoc_ui(credentials: HTTPBasicCredentials = Depends(authenticate)):
+    return get_redoc_html(openapi_url="/openapi.json", title="Plot Service ReDoc")
