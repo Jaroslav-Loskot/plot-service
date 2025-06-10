@@ -20,11 +20,7 @@ Designed to power **AI Agents** (like in **n8n**), automation flows, or scriptin
 
 Absolutely! Here's the updated `README.md` with **two complete example requests** under the "🧪 Example Requests" section — one standard (bar chart), one heatmap.
 
----
 
-### ✅ Updated `README.md` Section with Examples
-
-````markdown
 ## 🧪 Example Requests
 
 ### 📊 Bar Chart
