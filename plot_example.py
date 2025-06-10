@@ -2,16 +2,27 @@ import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
 
-def generate_plot(x_values, y_values):
+def generate_plot(x_values, y_values, chart_type="line"):
     plt.figure()
-    plt.plot(x_values, y_values, marker='o')
-    plt.xlabel("X Axis")
-    plt.ylabel("Y Axis")
-    plt.title("Matplotlib Line Plot")
+
+    if chart_type == "line":
+        plt.plot(x_values, y_values, marker='o')
+    elif chart_type == "bar":
+        plt.bar(x_values, y_values)
+    elif chart_type == "scatter":
+        plt.scatter(x_values, y_values)
+    elif chart_type == "pie":
+        plt.pie(y_values, labels=x_values, autopct='%1.1f%%')
+    else:
+        raise ValueError(f"Unsupported chart type: {chart_type}")
+
+    if chart_type != "pie":
+        plt.xlabel("X Axis")
+        plt.ylabel("Y Axis")
+        plt.title(f"{chart_type.capitalize()} Plot")
 
     buf = BytesIO()
     plt.savefig(buf, format='png')
-    plt.close()  # Important: prevent memory leak
+    plt.close()
     buf.seek(0)
-    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
-    return img_base64
+    return base64.b64encode(buf.read()).decode('utf-8')

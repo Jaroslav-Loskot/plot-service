@@ -7,7 +7,7 @@ ENV PYTHONUNBUFFERED=1
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies for matplotlib
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     libfreetype6-dev \
@@ -17,15 +17,20 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Create a non-root user
+RUN useradd --create-home --shell /bin/bash appuser
+
+# Copy requirements and install dependencies as root
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy the app code and fix ownership
 COPY . .
+RUN chown -R appuser:appuser /app
 
-# Expose FastAPI port
+# Switch to non-root user
+USER appuser
+
+# Expose port and run the app
 EXPOSE 8000
-
-# Run the app
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
