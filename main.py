@@ -14,7 +14,9 @@ class PlotRequest(BaseModel):
     xlabel: str | None = None
     ylabel: str | None = None
     grid: bool = False
-    return_format: str = "base64"  # base64 or png
+    return_format: str = "base64"
+    description: str | None = None
+
 
 
 
@@ -36,7 +38,10 @@ def create_plot(data: PlotRequest):
         else:
             import base64
             encoded = base64.b64encode(image_bytes).decode("utf-8")
-            return {"image_base64": encoded}
+            return {
+                "image_base64": encoded,
+                "description": data.description
+            }
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
