@@ -14,8 +14,8 @@ import base64
 load_dotenv()
 
 security = HTTPBasic()
-USERNAME = os.getenv("USERNAME", "admin")
-PASSWORD = os.getenv("PASSWORD", "secret123")
+USERNAME = os.getenv("PLT-SERVICE-USER", "admin")
+PASSWORD = os.getenv("PLT-SERVICE-PSSWD", "secret123")
 
 app = FastAPI()
 
@@ -123,7 +123,6 @@ def health():
 @app.get("/ready")
 def ready():
     return {"status": "ready"}
-
 
 @app.get("/docs", include_in_schema=False)
 def custom_swagger_ui(credentials: HTTPBasicCredentials = Depends(authenticate)):
