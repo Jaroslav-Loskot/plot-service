@@ -12,8 +12,8 @@ import os
 load_dotenv()
 
 security = HTTPBasic()
-USERNAME = os.getenv("USERNAME", "admin")
-PASSWORD = os.getenv("PASSWORD", "secret123")
+USERNAME = os.getenv("PLT-SERVICE-USER", "admin")
+PASSWORD = os.getenv("PLT-SERVICE-PSSWD", "secret123")
 
 app = FastAPI()
 
