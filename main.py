@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from plot_example import generate_plot
+from fastapi.responses import StreamingResponse
+from io import BytesIO
 
 app = FastAPI()
 
@@ -19,7 +21,7 @@ class PlotRequest(BaseModel):
 @app.post("/plot")
 def create_plot(data: PlotRequest):
     try:
-        img_b64 = generate_plot(
+        image_bytes = generate_plot(
             data.x,
             data.y,
             data.chart_type,
@@ -28,7 +30,14 @@ def create_plot(data: PlotRequest):
             data.ylabel,
             data.grid
         )
-        return {"image_base64": img_b64}
+
+        if data.return_format == "png":
+            return StreamingResponse(BytesIO(image_bytes), media_type="image/png")
+        else:
+            import base64
+            encoded = base64.b64encode(image_bytes).decode("utf-8")
+            return {"image_base64": encoded}
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -51,3 +60,12 @@ def get_help():
             "grid": True
         }
     }
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+@app.get("/ready")
+def ready():
+    return {"status": "ready"}
+

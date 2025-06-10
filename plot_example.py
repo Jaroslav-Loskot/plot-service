@@ -31,4 +31,5 @@ def generate_plot(x_values, y_values, chart_type="line", title=None, xlabel=None
     plt.savefig(buf, format='png')
     plt.close()
     buf.seek(0)
-    return base64.b64encode(buf.read()).decode('utf-8')
+    return buf.read()  # return raw image bytes
+
