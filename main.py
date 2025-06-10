@@ -6,11 +6,14 @@ from io import BytesIO
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi import Depends
 import secrets
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 
 security = HTTPBasic()
-USERNAME = "update-as-soon-as-possible"
-PASSWORD = "your-hyper-secret-password"
+USERNAME = os.getenv("USERNAME", "admin")
+PASSWORD = os.getenv("PASSWORD", "secret123")
 
 app = FastAPI()
 
