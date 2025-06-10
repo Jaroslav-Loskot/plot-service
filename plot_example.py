@@ -1,19 +1,18 @@
 import matplotlib.pyplot as plt
-import base64
 from io import BytesIO
 
-def generate_plot(x_values=None, y_values=None, z=None, chart_type="line", title=None, xlabel=None, ylabel=None, grid=False):
+def generate_plot(x=None, y=None, z=None, chart_type="line", title=None, xlabel=None, ylabel=None, grid=False):
     plt.figure()
     ax = plt.gca()
 
     if chart_type == "line":
-        ax.plot(x_values, y_values, marker='o', label="Line")
+        ax.plot(x, y, marker='o', label="Line")
     elif chart_type == "bar":
-        ax.bar(x_values, y_values, label="Bar")
+        ax.bar(x, y, label="Bar")
     elif chart_type == "scatter":
-        ax.scatter(x_values, y_values, label="Scatter")
+        ax.scatter(x, y, label="Scatter")
     elif chart_type == "pie":
-        ax.pie(y_values, labels=x_values, autopct='%1.1f%%')
+        ax.pie(y, labels=x, autopct='%1.1f%%')
     elif chart_type == "heatmap":
         if z is None:
             raise ValueError("Heatmap requires 'z' matrix data.")
