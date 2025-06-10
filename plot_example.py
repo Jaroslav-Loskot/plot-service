@@ -2,34 +2,40 @@ import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
 
-def generate_plot(x_values, y_values, chart_type="line", title=None, xlabel=None, ylabel=None, grid=False):
+def generate_plot(x_values=None, y_values=None, z=None, chart_type="line", title=None, xlabel=None, ylabel=None, grid=False):
     plt.figure()
+    ax = plt.gca()
 
     if chart_type == "line":
-        plt.plot(x_values, y_values, marker='o', label="Line")
+        ax.plot(x_values, y_values, marker='o', label="Line")
     elif chart_type == "bar":
-        plt.bar(x_values, y_values, label="Bar")
+        ax.bar(x_values, y_values, label="Bar")
     elif chart_type == "scatter":
-        plt.scatter(x_values, y_values, label="Scatter")
+        ax.scatter(x_values, y_values, label="Scatter")
     elif chart_type == "pie":
-        plt.pie(y_values, labels=x_values, autopct='%1.1f%%')
+        ax.pie(y_values, labels=x_values, autopct='%1.1f%%')
+    elif chart_type == "heatmap":
+        if z is None:
+            raise ValueError("Heatmap requires 'z' matrix data.")
+        heatmap = ax.imshow(z, cmap='viridis')
+        plt.colorbar(heatmap)
     else:
         raise ValueError(f"Unsupported chart type: {chart_type}")
 
     if chart_type != "pie":
         if xlabel:
-            plt.xlabel(xlabel)
+            ax.set_xlabel(xlabel)
         if ylabel:
-            plt.ylabel(ylabel)
+            ax.set_ylabel(ylabel)
         if title:
-            plt.title(title)
+            ax.set_title(title)
         if grid:
-            plt.grid(True)
-        plt.legend()
+            ax.grid(True)
+        if chart_type != "heatmap":
+            ax.legend()
 
     buf = BytesIO()
     plt.savefig(buf, format='png')
     plt.close()
     buf.seek(0)
-    return buf.read()  # return raw image bytes
-
+    return buf.read()
