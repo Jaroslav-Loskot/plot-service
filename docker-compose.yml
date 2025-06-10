@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  plot-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: plot-service
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    environment:
+      # Optional runtime configuration
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
