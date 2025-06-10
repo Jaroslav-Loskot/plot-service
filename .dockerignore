@@ -1,0 +1,36 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+.env/
+.venv/
+venv/
+
+# Git files
+.git/
+.gitignore
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# IDE/editor files
+.vscode/
+.idea/
+
+# Test and logs
+*.log
+*.pytest_cache/
+tests/
+
+# Docker artifacts
+Dockerfile
+docker-compose.yml
+
+# Environment configs
+.env
+*.env
