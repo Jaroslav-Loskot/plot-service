@@ -104,18 +104,3 @@ You can add API keys, rate limiting, or basic auth if deploying publicly.
 
 Created by [Jaroslav Loskot](https://github.com/Jaroslav-Loskot)
 MIT License
-
-````
-
----
-
-## ✅ Next Step: Add and Commit to Git
-
-```bash
-# Save README.md to your repo root
-git add README.md
-git commit -m "Add README with usage, examples, and API details"
-git push
-````
-
-Let me know if you'd like a **GitHub Actions CI pipeline**, or you'd like to **publish to DockerHub or GHCR** next!
