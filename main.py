@@ -8,6 +8,7 @@ from fastapi import Depends
 import secrets
 from dotenv import load_dotenv
 import os
+from typing import Optional, Union
 
 load_dotenv()
 
@@ -18,15 +19,16 @@ PASSWORD = os.getenv("PLT-SERVICE-PSSWD", "secret123")
 app = FastAPI()
 
 class PlotRequest(BaseModel):
-    x: list[str | float]
+    x: list[Union[str, float]]
     y: list[float]
+    z: Optional[list[list[float]]] = None  # 👈 New field for heatmap matrix
     chart_type: str = "line"
-    title: str | None = None
-    xlabel: str | None = None
-    ylabel: str | None = None
+    title: Optional[str] = None
+    xlabel: Optional[str] = None
+    ylabel: Optional[str] = None
     grid: bool = False
     return_format: str = "base64"
-    description: str | None = None
+    description: Optional[str] = None
 
 def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
     correct_username = secrets.compare_digest(credentials.username, USERNAME)
@@ -81,7 +83,7 @@ def get_help():
             "return_format",
             "description"
         ],
-        "chart_types_supported": ["line", "bar", "scatter", "pie"],
+        "chart_types_supported": ["line", "bar", "scatter", "pie", "heatmap"],
         "return_formats_supported": ["base64 (default)", "png"],
         "notes": [
             "PNG responses return only the image and exclude description or other metadata.",
