@@ -20,9 +20,11 @@ PASSWORD = os.getenv("PLT-SERVICE-PSSWD", "secret123")
 app = FastAPI()
 
 
+from typing import Optional, Union
+
 class PlotRequest(BaseModel):
     x: Optional[list[Union[str, float]]] = None
-    y: Optional[list[float]] = None
+    y: Optional[Union[list[float], list[list[float]]]] = None  # Accepts 1D or 2D
     z: Optional[list[list[float]]] = None
     chart_type: str = "line"
     title: Optional[str] = None
@@ -31,6 +33,8 @@ class PlotRequest(BaseModel):
     grid: bool = False
     return_format: str = "base64"
     description: Optional[str] = None
+    series_labels: Optional[list[str]] = None  # New: labels for each line
+
 
 
 def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
@@ -80,39 +84,70 @@ def create_plot(data: PlotRequest, credentials: HTTPBasicCredentials = Depends(a
 @app.get("/help")
 def get_help():
     return {
-        "description": "This API generates graphs using Matplotlib. It supports both base64-encoded images and raw PNG responses.",
+        "description": "This API generates graphs using Matplotlib. It supports base64-encoded images or raw PNG output.",
         "endpoint": "/plot",
         "method": "POST",
-        "required_fields": ["x", "y"],
+        "required_fields": ["chart_type"],
         "optional_fields": [
-            "chart_type",
+            "x",
+            "y",
+            "z",
+            "series_labels",
             "title",
             "xlabel",
             "ylabel",
             "grid",
             "return_format",
-            "description",
-            "z (for heatmaps)"
+            "description"
         ],
         "chart_types_supported": ["line", "bar", "scatter", "pie", "heatmap"],
-        "return_formats_supported": ["base64 (default)", "png"],
         "notes": [
-            "PNG responses return only the image and exclude description or other metadata.",
-            "Base64 format includes the encoded image and may include optional fields like description.",
-            "Heatmap charts require a 2D 'z' list (matrix) instead of 'x' and 'y'."
+            "'y' can be a single list (1D) or multiple series (2D) for line charts.",
+            "Each inner list in 2D 'y' must match the length of 'x'.",
+            "'series_labels' is optional but useful for legends."
         ],
-        "example_payload": {
-            "x": ["Q1", "Q2", "Q3"],
-            "y": [120, 150, 180],
-            "chart_type": "bar",
-            "title": "Quarterly Sales",
-            "xlabel": "Quarter",
-            "ylabel": "Revenue",
-            "grid": True,
-            "return_format": "base64",
-            "description": "Bar chart showing sales over Q1 to Q3."
+        "return_formats_supported": ["base64 (default)", "png"],
+        "example_payloads": {
+            "bar_chart": {
+                "x": ["Q1", "Q2", "Q3"],
+                "y": [120, 150, 180],
+                "chart_type": "bar",
+                "title": "Quarterly Sales",
+                "xlabel": "Quarter",
+                "ylabel": "Revenue",
+                "grid": True,
+                "return_format": "base64",
+                "description": "Bar chart showing sales performance."
+            },
+            "multi_line": {
+                "x": ["Jan", "Feb", "Mar"],
+                "y": [
+                    [10, 20, 30],
+                    [15, 18, 25]
+                ],
+                "series_labels": ["Product A", "Product B"],
+                "chart_type": "line",
+                "title": "Monthly Sales Comparison",
+                "xlabel": "Month",
+                "ylabel": "Sales",
+                "grid": True,
+                "return_format": "base64"
+            },
+            "heatmap": {
+                "chart_type": "heatmap",
+                "z": [
+                    [10, 20, 30],
+                    [20, 25, 35],
+                    [30, 35, 40]
+                ],
+                "title": "Matrix Heatmap",
+                "xlabel": "Columns",
+                "ylabel": "Rows",
+                "return_format": "base64"
+            }
         }
     }
+
 
 
 @app.get("/health")
