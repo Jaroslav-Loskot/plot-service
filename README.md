@@ -28,18 +28,20 @@ Absolutely! Here's the updated `README.md` with **two complete example requests*
 ```http
 POST /plot
 Content-Type: application/json
-Authorization: Basic <base64-credentials>
 
 {
-  "x": ["Q1", "Q2", "Q3"],
-  "y": [120, 150, 180],
   "chart_type": "bar",
-  "title": "Quarterly Sales",
+  "x": ["Q1", "Q2", "Q3"],
+  "y": [
+    [100, 120, 140],
+    [90, 110, 130]
+  ],
+  "series_labels": ["Product A", "Product B"],
+  "title": "Quarterly Revenue Comparison",
   "xlabel": "Quarter",
   "ylabel": "Revenue",
   "grid": true,
-  "return_format": "base64",
-  "description": "Bar chart showing sales performance over three quarters."
+  "return_format": "base64"
 }
 ````
 ### 📈 Multi-Line Comparison

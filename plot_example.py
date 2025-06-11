@@ -25,8 +25,25 @@ def generate_plot(
             ax.plot(x, y, marker='o', label=label)
 
     elif chart_type == "bar":
-        ax.bar(x, y, label=series_labels[0] if series_labels else "Bar")
+        if isinstance(y[0], list):
+            # Multiple series → grouped bar chart
+            import numpy as np
+            n_series = len(y)
+            n_points = len(x)
+            bar_width = 0.8 / n_series  # total width divided between series
+            x_indices = np.arange(n_points)
 
+            for idx, y_series in enumerate(y):
+                offset = (idx - (n_series - 1) / 2) * bar_width
+                label = series_labels[idx] if series_labels and idx < len(series_labels) else f"Series {idx + 1}"
+                ax.bar(x_indices + offset, y_series, width=bar_width, label=label)
+
+            ax.set_xticks(x_indices)
+            ax.set_xticklabels(x)
+        else:
+            label = series_labels[0] if series_labels else "Bar"
+            ax.bar(x, y, label=label)
+            
     elif chart_type == "scatter":
         ax.scatter(x, y, label=series_labels[0] if series_labels else "Scatter")
 

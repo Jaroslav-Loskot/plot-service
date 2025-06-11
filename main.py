@@ -120,6 +120,20 @@ def get_help():
                 "return_format": "base64",
                 "description": "Bar chart showing sales performance."
             },
+            "multi_bar": {
+                "chart_type": "bar",
+                "x": ["Q1", "Q2", "Q3"],
+                "y": [
+                    [100, 120, 140],
+                    [90, 110, 130]
+                ],
+                "series_labels": ["Product A", "Product B"],
+                "title": "Quarterly Revenue Comparison",
+                "xlabel": "Quarter",
+                "ylabel": "Revenue",
+                "grid": True,
+                "return_format": "base64"
+            },
             "multi_line": {
                 "x": ["Jan", "Feb", "Mar"],
                 "y": [
