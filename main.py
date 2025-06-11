@@ -1,3 +1,9 @@
+from pathlib import Path
+import uuid
+import threading
+from contextlib import asynccontextmanager
+import time
+from fastapi.responses import FileResponse
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -13,11 +19,21 @@ import base64
 
 load_dotenv()
 
+TEMP_DIR = Path("temp_images")
+TEMP_DIR.mkdir(exist_ok=True)
+
 security = HTTPBasic()
 USERNAME = os.getenv("PLT-SERVICE-USER", "admin")
 PASSWORD = os.getenv("PLT-SERVICE-PSSWD", "secret123")
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ✅ Cleanup old files on startup
+    cleanup_old_files(TEMP_DIR, max_age_seconds=300)
+    yield
+    # You can do more cleanup on shutdown here if needed
+
+app = FastAPI(lifespan=lifespan)
 
 
 from typing import Optional, Union
@@ -42,6 +58,27 @@ def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
     correct_password = secrets.compare_digest(credentials.password, PASSWORD)
     if not (correct_username and correct_password):
         raise HTTPException(status_code=401, detail="Unauthorized", headers={"WWW-Authenticate": "Basic"})
+
+def auto_delete(filepath: Path, delay_seconds: int = 300):
+    def delete():
+        time.sleep(delay_seconds)
+        try:
+            filepath.unlink()
+        except FileNotFoundError:
+            pass
+    threading.Thread(target=delete, daemon=True).start()
+
+
+def cleanup_old_files(directory: Path, max_age_seconds: int = 300):
+    print(f"[Startup Cleanup] Checked temp files in {directory}")
+    now = time.time()
+    for file in directory.glob("*.png"):
+        try:
+            if file.stat().st_mtime < (now - max_age_seconds):
+                file.unlink()
+        except Exception as e:
+            print(f"Error deleting {file.name}: {e}")
+
 
 
 @app.post("/plot")
@@ -71,6 +108,19 @@ def create_plot(data: PlotRequest, credentials: HTTPBasicCredentials = Depends(a
 
         if data.return_format == "png":
             return StreamingResponse(BytesIO(image_bytes), media_type="image/png")
+        elif data.return_format == "url":
+            filename = f"{uuid.uuid4()}.png"
+            filepath = TEMP_DIR / filename
+            with open(filepath, "wb") as f:
+                f.write(image_bytes)
+
+            auto_delete(filepath)  # Auto-delete after timeout
+
+            return {
+                "url": f"/download/{filename}",
+                "format": "url",
+                "description": data.description or "Temporary chart URL (expires in ~5 min)"
+            }
         else:
             encoded = base64.b64encode(image_bytes).decode("utf-8")
             return {
@@ -78,14 +128,23 @@ def create_plot(data: PlotRequest, credentials: HTTPBasicCredentials = Depends(a
                 "description": data.description
             }
 
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/download/{filename}")
+def download_plot(filename: str):
+    filepath = TEMP_DIR / filename
+    if filepath.exists():
+        return FileResponse(filepath, media_type="image/png", filename=filename)
+    raise HTTPException(status_code=404, detail="File not found or expired.")
 
 
 @app.get("/help")
 def get_help():
     return {
-        "description": "This API generates graphs using Matplotlib. It supports base64-encoded images or raw PNG output.",
+        "description": "This API generates graphs using Matplotlib. It supports base64-encoded images, raw PNG output, or a temporary URL to the image.",
         "endpoint": "/plot",
         "method": "POST",
         "required_fields": ["chart_type"],
@@ -102,12 +161,17 @@ def get_help():
             "description"
         ],
         "chart_types_supported": ["line", "bar", "scatter", "pie", "heatmap"],
-        "notes": [
-            "'y' can be a single list (1D) or multiple series (2D) for line charts.",
-            "Each inner list in 2D 'y' must match the length of 'x'.",
-            "'series_labels' is optional but useful for legends."
+        "return_formats_supported": [
+            "base64 (default) – returns base64-encoded PNG string in JSON",
+            "png – returns raw image stream with 'image/png' content type",
+            "url – returns a temporary download URL (expires in ~5 minutes)"
         ],
-        "return_formats_supported": ["base64 (default)", "png"],
+        "notes": [
+            "'y' can be a single list (1D) or multiple series (2D) for line and bar charts.",
+            "Each inner list in 2D 'y' must match the length of 'x'.",
+            "'series_labels' is optional but useful for legends.",
+            "Use 'url' return_format for browser or client-side rendering via temporary links."
+        ],
         "example_payloads": {
             "bar_chart": {
                 "x": ["Q1", "Q2", "Q3"],
@@ -159,9 +223,18 @@ def get_help():
                 "xlabel": "Columns",
                 "ylabel": "Rows",
                 "return_format": "base64"
+            },
+            "url_format_example": {
+                "x": ["Jan", "Feb", "Mar"],
+                "y": [10, 20, 30],
+                "chart_type": "line",
+                "title": "Chart with Temporary URL",
+                "return_format": "url",
+                "description": "Returns a link to a temp-hosted PNG (valid ~5 min)."
             }
         }
     }
+
 
 
 
