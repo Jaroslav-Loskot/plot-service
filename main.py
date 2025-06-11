@@ -65,7 +65,8 @@ def create_plot(data: PlotRequest, credentials: HTTPBasicCredentials = Depends(a
             title=data.title,
             xlabel=data.xlabel,
             ylabel=data.ylabel,
-            grid=data.grid
+            grid=data.grid,
+            series_labels=data.series_labels  # ✅ Add this line
         )
 
         if data.return_format == "png":

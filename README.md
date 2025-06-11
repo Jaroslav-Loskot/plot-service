@@ -42,7 +42,27 @@ Authorization: Basic <base64-credentials>
   "description": "Bar chart showing sales performance over three quarters."
 }
 ````
+### 📈 Multi-Line Comparison
 
+```http
+POST /plot
+Content-Type: application/json
+Authorization: Basic <base64-credentials>
+
+{
+  "chart_type": "line",
+  "x": ["Jan", "Feb", "Mar"],
+  "y": [
+    [10, 20, 30],
+    [15, 18, 25]
+  ],
+  "series_labels": ["Product A", "Product B"],
+  "title": "Monthly Sales Comparison",
+  "xlabel": "Month",
+  "ylabel": "Units Sold",
+  "grid": true,
+  "return_format": "base64"
+}
 ---
 
 ### 🔥 Heatmap
