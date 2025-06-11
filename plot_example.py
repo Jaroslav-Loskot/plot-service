@@ -48,7 +48,9 @@ def generate_plot(
         ax.scatter(x, y, label=series_labels[0] if series_labels else "Scatter")
 
     elif chart_type == "pie":
-        ax.pie(y, labels=x, autopct='%1.1f%%')
+        labels = series_labels if series_labels else [f"Slice {i+1}" for i in range(len(y))]
+        ax.pie(y, labels=labels, autopct="%1.1f%%", startangle=90)
+        ax.axis("equal")  # Optional: makes the pie circular
 
     elif chart_type == "heatmap":
         if z is None:

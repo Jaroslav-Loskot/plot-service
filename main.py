@@ -85,9 +85,12 @@ def cleanup_old_files(directory: Path, max_age_seconds: int = 300):
 def create_plot(data: PlotRequest, credentials: HTTPBasicCredentials = Depends(authenticate)):
     try:
         # Validate required fields
-        if data.chart_type in ["line", "bar", "scatter", "pie"]:
+        if data.chart_type in ["line", "bar", "scatter"]:
             if data.x is None or data.y is None:
-                raise ValueError(f"'{data.chart_type}' chart requires 'x' and 'y' fields.")
+                raise ValueError(f"'{data.chart_type}' chart requires both 'x' and 'y' fields.")
+        elif data.chart_type == "pie":
+            if data.y is None:
+                raise ValueError("'pie' chart requires 'y' values.")
         elif data.chart_type == "heatmap":
             if data.z is None:
                 raise ValueError("'heatmap' chart requires 'z' matrix data.")
@@ -141,6 +144,8 @@ def download_plot(filename: str):
     raise HTTPException(status_code=404, detail="File not found or expired.")
 
 
+
+
 @app.get("/help")
 def get_help():
     return {
@@ -169,7 +174,7 @@ def get_help():
         "notes": [
             "'y' can be a single list (1D) or multiple series (2D) for line and bar charts.",
             "Each inner list in 2D 'y' must match the length of 'x'.",
-            "'series_labels' is optional but useful for legends.",
+            "'series_labels' is optional but used for labeling pie slices and legends in multi-series charts. For pie charts, 'x' is not required."
             "Use 'url' return_format for browser or client-side rendering via temporary links."
         ],
         "example_payloads": {
