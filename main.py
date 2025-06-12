@@ -1,43 +1,44 @@
 from pathlib import Path
 import uuid
 import threading
-from contextlib import asynccontextmanager
 import time
-from fastapi.responses import FileResponse
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.responses import StreamingResponse
+import secrets
+import base64
+import os
+from io import BytesIO
+from typing import Optional, Union
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
 from pydantic import BaseModel
-from plot_example import generate_plot
-from io import BytesIO
-import secrets
 from dotenv import load_dotenv
-import os
-from typing import Optional, Union
-import base64
 
+from plot_example import generate_plot  # Custom plot logic
+
+# Load environment variables
 load_dotenv()
 
+# Temporary file storage for plot images
 TEMP_DIR = Path("temp_images")
 TEMP_DIR.mkdir(exist_ok=True)
 
+# Basic Auth setup
 security = HTTPBasic()
 USERNAME = os.getenv("PLT-SERVICE-USER", "admin")
 PASSWORD = os.getenv("PLT-SERVICE-PSSWD", "secret123")
 
+# Lifespan event to clean old files on startup
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ✅ Cleanup old files on startup
     cleanup_old_files(TEMP_DIR, max_age_seconds=300)
     yield
-    # You can do more cleanup on shutdown here if needed
 
 app = FastAPI(lifespan=lifespan)
 
-
-from typing import Optional, Union
-
+# Request body for plot creation
 class PlotRequest(BaseModel):
     x: Optional[list[Union[str, float]]] = None
     y: Optional[Union[list[float], list[list[float]]]] = None  # Accepts 1D or 2D
@@ -49,16 +50,16 @@ class PlotRequest(BaseModel):
     grid: bool = False
     return_format: str = "base64"
     description: Optional[str] = None
-    series_labels: Optional[list[str]] = None  # New: labels for each line
+    series_labels: Optional[list[str]] = None
 
-
-
+# Basic HTTP auth verification
 def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
     correct_username = secrets.compare_digest(credentials.username, USERNAME)
     correct_password = secrets.compare_digest(credentials.password, PASSWORD)
     if not (correct_username and correct_password):
         raise HTTPException(status_code=401, detail="Unauthorized", headers={"WWW-Authenticate": "Basic"})
 
+# Schedule auto-delete of temporary image file
 def auto_delete(filepath: Path, delay_seconds: int = 300):
     def delete():
         time.sleep(delay_seconds)
@@ -68,7 +69,7 @@ def auto_delete(filepath: Path, delay_seconds: int = 300):
             pass
     threading.Thread(target=delete, daemon=True).start()
 
-
+# Remove expired temporary image files
 def cleanup_old_files(directory: Path, max_age_seconds: int = 300):
     print(f"[Startup Cleanup] Checked temp files in {directory}")
     now = time.time()
@@ -79,12 +80,11 @@ def cleanup_old_files(directory: Path, max_age_seconds: int = 300):
         except Exception as e:
             print(f"Error deleting {file.name}: {e}")
 
-
-
+# Main endpoint to create and return plot in various formats
 @app.post("/plot")
 def create_plot(data: PlotRequest, credentials: HTTPBasicCredentials = Depends(authenticate)):
     try:
-        # Validate required fields
+        # Validate required fields for each chart type
         if data.chart_type in ["line", "bar", "scatter"]:
             if data.x is None or data.y is None:
                 raise ValueError(f"'{data.chart_type}' chart requires both 'x' and 'y' fields.")
@@ -97,6 +97,7 @@ def create_plot(data: PlotRequest, credentials: HTTPBasicCredentials = Depends(a
         else:
             raise ValueError(f"Unsupported chart type: {data.chart_type}")
 
+        # Generate image bytes
         image_bytes = generate_plot(
             x=data.x,
             y=data.y,
@@ -106,24 +107,25 @@ def create_plot(data: PlotRequest, credentials: HTTPBasicCredentials = Depends(a
             xlabel=data.xlabel,
             ylabel=data.ylabel,
             grid=data.grid,
-            series_labels=data.series_labels  # ✅ Add this line
+            series_labels=data.series_labels
         )
 
+        # Return based on format
         if data.return_format == "png":
             return StreamingResponse(BytesIO(image_bytes), media_type="image/png")
+
         elif data.return_format == "url":
             filename = f"{uuid.uuid4()}.png"
             filepath = TEMP_DIR / filename
             with open(filepath, "wb") as f:
                 f.write(image_bytes)
-
-            auto_delete(filepath)  # Auto-delete after timeout
-
+            auto_delete(filepath)
             return {
                 "url": f"/download/{filename}",
                 "format": "url",
                 "description": data.description or "Temporary chart URL (expires in ~5 min)"
             }
+
         else:
             encoded = base64.b64encode(image_bytes).decode("utf-8")
             return {
@@ -131,11 +133,10 @@ def create_plot(data: PlotRequest, credentials: HTTPBasicCredentials = Depends(a
                 "description": data.description
             }
 
-
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-
+# Serve temporary PNG images
 @app.get("/download/{filename}")
 def download_plot(filename: str):
     filepath = TEMP_DIR / filename
@@ -143,9 +144,7 @@ def download_plot(filename: str):
         return FileResponse(filepath, media_type="image/png", filename=filename)
     raise HTTPException(status_code=404, detail="File not found or expired.")
 
-
-
-
+# Help endpoint describing usage and payload examples
 @app.get("/help")
 def get_help():
     return {
@@ -154,16 +153,7 @@ def get_help():
         "method": "POST",
         "required_fields": ["chart_type"],
         "optional_fields": [
-            "x",
-            "y",
-            "z",
-            "series_labels",
-            "title",
-            "xlabel",
-            "ylabel",
-            "grid",
-            "return_format",
-            "description"
+            "x", "y", "z", "series_labels", "title", "xlabel", "ylabel", "grid", "return_format", "description"
         ],
         "chart_types_supported": ["line", "bar", "scatter", "pie", "heatmap"],
         "return_formats_supported": [
@@ -174,88 +164,23 @@ def get_help():
         "notes": [
             "'y' can be a single list (1D) or multiple series (2D) for line and bar charts.",
             "Each inner list in 2D 'y' must match the length of 'x'.",
-            "'series_labels' is optional but used for labeling pie slices and legends in multi-series charts. For pie charts, 'x' is not required."
+            "'series_labels' is optional but used for labeling pie slices and legends in multi-series charts.",
             "Use 'url' return_format for browser or client-side rendering via temporary links."
-        ],
-        "example_payloads": {
-            "bar_chart": {
-                "x": ["Q1", "Q2", "Q3"],
-                "y": [120, 150, 180],
-                "chart_type": "bar",
-                "title": "Quarterly Sales",
-                "xlabel": "Quarter",
-                "ylabel": "Revenue",
-                "grid": True,
-                "return_format": "base64",
-                "description": "Bar chart showing sales performance."
-            },
-            "multi_bar": {
-                "chart_type": "bar",
-                "x": ["Q1", "Q2", "Q3"],
-                "y": [
-                    [100, 120, 140],
-                    [90, 110, 130]
-                ],
-                "series_labels": ["Product A", "Product B"],
-                "title": "Quarterly Revenue Comparison",
-                "xlabel": "Quarter",
-                "ylabel": "Revenue",
-                "grid": True,
-                "return_format": "base64"
-            },
-            "multi_line": {
-                "x": ["Jan", "Feb", "Mar"],
-                "y": [
-                    [10, 20, 30],
-                    [15, 18, 25]
-                ],
-                "series_labels": ["Product A", "Product B"],
-                "chart_type": "line",
-                "title": "Monthly Sales Comparison",
-                "xlabel": "Month",
-                "ylabel": "Sales",
-                "grid": True,
-                "return_format": "base64"
-            },
-            "heatmap": {
-                "chart_type": "heatmap",
-                "z": [
-                    [10, 20, 30],
-                    [20, 25, 35],
-                    [30, 35, 40]
-                ],
-                "title": "Matrix Heatmap",
-                "xlabel": "Columns",
-                "ylabel": "Rows",
-                "return_format": "base64"
-            },
-            "url_format_example": {
-                "x": ["Jan", "Feb", "Mar"],
-                "y": [10, 20, 30],
-                "chart_type": "line",
-                "title": "Chart with Temporary URL",
-                "return_format": "url",
-                "description": "Returns a link to a temp-hosted PNG (valid ~5 min)."
-            }
-        }
+        ]
     }
-
-
-
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-
 @app.get("/ready")
 def ready():
     return {"status": "ready"}
 
+# Protect interactive docs with basic auth
 @app.get("/docs", include_in_schema=False)
 def custom_swagger_ui(credentials: HTTPBasicCredentials = Depends(authenticate)):
     return get_swagger_ui_html(openapi_url="/openapi.json", title="Plot Service Docs")
-
 
 @app.get("/redoc", include_in_schema=False)
 def custom_redoc_ui(credentials: HTTPBasicCredentials = Depends(authenticate)):

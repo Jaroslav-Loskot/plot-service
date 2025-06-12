@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 from io import BytesIO
 
 def generate_plot(
@@ -16,6 +17,7 @@ def generate_plot(
     ax = plt.gca()
 
     if chart_type == "line":
+        # Support for multiple series (2D y) or single series
         if isinstance(y, list) and all(isinstance(val, list) for val in y):
             for idx, y_series in enumerate(y):
                 label = series_labels[idx] if series_labels and idx < len(series_labels) else f"Series {idx + 1}"
@@ -27,10 +29,9 @@ def generate_plot(
     elif chart_type == "bar":
         if isinstance(y[0], list):
             # Multiple series → grouped bar chart
-            import numpy as np
             n_series = len(y)
             n_points = len(x)
-            bar_width = 0.8 / n_series  # total width divided between series
+            bar_width = 0.8 / n_series
             x_indices = np.arange(n_points)
 
             for idx, y_series in enumerate(y):
@@ -43,14 +44,14 @@ def generate_plot(
         else:
             label = series_labels[0] if series_labels else "Bar"
             ax.bar(x, y, label=label)
-            
+
     elif chart_type == "scatter":
         ax.scatter(x, y, label=series_labels[0] if series_labels else "Scatter")
 
     elif chart_type == "pie":
         labels = series_labels if series_labels else [f"Slice {i+1}" for i in range(len(y))]
         ax.pie(y, labels=labels, autopct="%1.1f%%", startangle=90)
-        ax.axis("equal")  # Optional: makes the pie circular
+        ax.axis("equal")  # Makes the pie circular
 
     elif chart_type == "heatmap":
         if z is None:
@@ -61,6 +62,7 @@ def generate_plot(
     else:
         raise ValueError(f"Unsupported chart type: {chart_type}")
 
+    # Common plot decorations (not for pie)
     if chart_type != "pie":
         if xlabel:
             ax.set_xlabel(xlabel)
@@ -73,7 +75,10 @@ def generate_plot(
         if chart_type != "heatmap":
             ax.legend()
 
+    # Finalize image and return as bytes
     buf = BytesIO()
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
     plt.savefig(buf, format="png")
     plt.close()
     buf.seek(0)
