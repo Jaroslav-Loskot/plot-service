@@ -24,11 +24,11 @@ Designed to power **AI Agents** (like in **n8n**), automation flows, or scriptin
 ### 📊 Bar Chart
 
 ```
-
 http
 POST /plot
 Content-Type: application/json
-
+```
+```
 {
 "chart\_type": "bar",
 "x": \["Q1", "Q2", "Q3"],
@@ -43,18 +43,17 @@ Content-Type: application/json
 "grid": true,
 "return\_format": "base64"
 }
-
 ```
 
 ### 📈 Multi-Line Comparison
 
 ```
-
 http
 POST /plot
 Content-Type: application/json
 Authorization: Basic <base64-credentials>
-
+```
+```
 {
 "chart\_type": "line",
 "x": \["Jan", "Feb", "Mar"],
@@ -75,12 +74,12 @@ Authorization: Basic <base64-credentials>
 ### 🔥 Heatmap
 
 ```
-
 http
 POST /plot
 Content-Type: application/json
 Authorization: Basic <base64-credentials>
-
+```
+```
 {
 "chart\_type": "heatmap",
 "z": \[
@@ -98,7 +97,6 @@ Authorization: Basic <base64-credentials>
 ```
 
 > ✅ Note: `x` and `y` are not required for heatmap.  
-> ✅ Be sure to pass the correct `Authorization` header using base64-encoded `username:password`.
 
 ---
 
@@ -107,12 +105,12 @@ Authorization: Basic <base64-credentials>
 You can also set `"return_format": "url"` to receive a temporary link to download the image.
 
 ```
-
 http
 POST /plot
 Content-Type: application/json
 Authorization: Basic <base64-credentials>
-
+```
+```
 {
 "chart\_type": "line",
 "x": \["Jan", "Feb", "Mar"],
@@ -130,7 +128,6 @@ Authorization: Basic <base64-credentials>
 Example Response:
 
 ```
-
 {
 "url": "/download/1718112245\_402ab4e3-38e2-4e33-9a2d-16a03d9e3c0a.png",
 "format": "url",
@@ -150,8 +147,8 @@ This service uses **HTTP Basic Auth**.
 ### Set credentials in `.env`:
 
 ```env
-USERNAME=your-username
-PASSWORD=your-strong-password
+PLT-SERVICE-USER=update-as-soon-as-possible
+PLT-SERVICE-PSSWD=your-hyper-secret-password
 ````
 
 Pass encoded credentials in the header:
